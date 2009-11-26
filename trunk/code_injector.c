@@ -8,7 +8,6 @@ void restore_code(int pid, unsigned long base_address, long original_code[], str
 unsigned int execute_code(int pid, unsigned char code[], int);
 int get_codelen(unsigned char code[]);
 unsigned long get_map_info(int pid, char *);
-
 /* -- ptrace help functions -- */
 void ptrace_detach(int pid);
 void ptrace_cont(int pid);
@@ -20,7 +19,7 @@ void * read_data(int pid, unsigned long addr, void *vptr, int len);
 void write_data(int pid, unsigned long target_address, unsigned char code[], int len);
 
 
-/* -- 코드 복구 함수 -- */
+/* -- Restore original code -- */
 void restore_code(int pid, unsigned long base_address, long original_code[], 
 		struct user_regs_struct *regs, int CODE_LENGTH) 
 {
@@ -41,7 +40,7 @@ void restore_code(int pid, unsigned long base_address, long original_code[],
 	ptrace_setregs(pid, regs);
 }
 
-/* -- 코드 주입용 함수 -- */
+/* -- Execute new code -- */
 unsigned int execute_code(int pid, unsigned char code[], int CODE_LENGTH)
 {
 	long reg_eip;
@@ -52,18 +51,14 @@ unsigned int execute_code(int pid, unsigned char code[], int CODE_LENGTH)
 	struct user_regs_struct regs_ret;
 	unsigned int base_address = 0x8048000;
 
-	/* -- 타깃 프로세스 잡기 -- */
 	ptrace_attach(pid);
 
-	/* -- 타깃 프로세스의 EIP 레지스터 값 저장 -- */
 	ptrace_getregs(pid, &regs);
 	reg_eip = regs.eip;
 
-	/* -- eip 주소를 바꿔서 내가 입력한 코드 실행 -- */
 	regs.eip = base_address+2;
 	ptrace_setregs(pid, &regs);
 
-	/* -- 원래 코드(?) 백업 -- */
 	for(i=0, j=0 ; i<CODE_LENGTH/4 ; i++, j+=4)
 	{
 		original_code[i] = ptrace(PTRACE_PEEKDATA, pid, 
@@ -74,7 +69,6 @@ unsigned int execute_code(int pid, unsigned char code[], int CODE_LENGTH)
 #endif
 	}
 
-	/* -- 새로운 코드 삽입 -- */
 	for(i=0 ; i<CODE_LENGTH ; i+=4)
 	{
 		ptrace(PTRACE_POKEDATA, pid, base_address+i,
@@ -87,20 +81,15 @@ unsigned int execute_code(int pid, unsigned char code[], int CODE_LENGTH)
 #endif
 	}
 
-	/* -- 삽입한 코드 실행 -- */
 	ptrace_cont(pid);
 
-	/* -- 코드 실행 후 리턴값 가져오기 -- */
 	ptrace_getregs(pid, &regs_ret);
 	ret = (unsigned int)regs_ret.eax;
 
-	/* -- 원래 EIP 복구 -- */
 	regs.eip=reg_eip;
 
-	/* -- 원래 코드로 복구 -- */
 	restore_code(pid, base_address, original_code, &regs, CODE_LENGTH);
 
-	/* -- 프로세스 놓아주기 -- */
 	ptrace_detach(pid);
 
 	return ret;
@@ -162,7 +151,6 @@ int get_codelen(unsigned char code[])
 	return i+1;
 }
 
-// 대상 프로세스의 특정주소에서 데이터 읽어들이기
 void * read_data(int pid, unsigned long addr, void *vptr, int len)
 {
 	int i, count;
@@ -178,7 +166,6 @@ void * read_data(int pid, unsigned long addr, void *vptr, int len)
 	}
 }
 
-// 문자열 읽어 들이기
 char *read_str(int pid, unsigned long addr, int len)
 {
 	char *ret = calloc(32, sizeof(char));
@@ -187,7 +174,6 @@ char *read_str(int pid, unsigned long addr, int len)
 }
 
 
-// 특정 프로세스 붙이기
 void ptrace_attach(int pid)
 {
   if((ptrace(PTRACE_ATTACH , pid , NULL , NULL)) < 0) {
@@ -198,7 +184,6 @@ void ptrace_attach(int pid)
   waitpid(pid , NULL , WUNTRACED);
 }
 
-// 레지스터 정보 가져오기
 void ptrace_getregs(int pid, struct user_regs_struct *regs)
 {
   if((ptrace(PTRACE_GETREGS, pid, NULL, regs)) < 0)
@@ -208,7 +193,6 @@ void ptrace_getregs(int pid, struct user_regs_struct *regs)
   }
 }
 
-// 레지스터 설정하기
 void ptrace_setregs(int pid, struct user_regs_struct *regs)
 {
   if((ptrace(PTRACE_SETREGS, pid, NULL, regs)) < 0)
@@ -218,7 +202,6 @@ void ptrace_setregs(int pid, struct user_regs_struct *regs)
   }
 }
 
-// 계속 실행하기
 void ptrace_cont(int pid)
 {
   int s;
@@ -231,7 +214,6 @@ void ptrace_cont(int pid)
 }
 
 
-// 프로세스 놓아주기
 void ptrace_detach(int pid)
 {
   if(ptrace(PTRACE_DETACH, pid , NULL , NULL) < 0) {
