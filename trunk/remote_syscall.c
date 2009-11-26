@@ -107,7 +107,6 @@ int remote_open(pid_t pid, char *path, int flags)
 	int len, ret;
 	unsigned long ptr;
 
-	// 대상 프로세스에 문자열을 쓸 메모리 공간 확보
 	ptr = (unsigned long)remote_mmap(pid, NULL, 128, PROT_READ|PROT_WRITE, 
 			MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
 
@@ -115,7 +114,6 @@ int remote_open(pid_t pid, char *path, int flags)
 	{
 		ptrace_attach(pid);
 
-		// 확보된 메모리 공간에 파일 경로를 적는다
 		write_data(pid, ptr, path, strlen(path));
 		ptrace_detach(pid);
 
