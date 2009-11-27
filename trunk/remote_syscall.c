@@ -1,6 +1,5 @@
 /* -- remote syscall by binoopang [binoopang@gmail.com]---------------------------- */
 
-
 #ifndef REMOTE_SYSCALL_C
 #define REMOTE_SYSCALL_C 1
 
@@ -60,8 +59,8 @@ unsigned char machine_code[] =
 	movl_esi "\x00\x00\x00\x00"
 	movl_edi "\x00\x00\x00\x00"
 	movl_ebp "\x00\x00\x00\x00" // Last arg
-	movl_eax "\x00\x00\x00\x00"
-	syscall
+	movl_eax "\x00\x00\x00\x00"	// Set System call number
+	syscall						// Interrupt!!
 	FINI_STUB;
 
 
@@ -69,16 +68,18 @@ unsigned char machine_code[] =
 void* remote_mmap(pid_t pid, void *start, size_t length, int prot, int flags, int fd, int offset);
 int remote_open(pid_t pid, char *path, int flags);
 int remote_munmap(pid_t pid, void *start, int size);
-void set_arg(int reg, unsigned int val, char *code);
+int remote_write(pid_t pid, int fd, unsigned char* buf, int len);
+int remote_read(pid_t pid, int fd, unsigned char* buf, int len);
+void set_reg(int reg, unsigned int val, char *code);
 
 /* -- Remote munmap function -- */
 int remote_munmap(pid_t pid, void *start, int size)
 {
 	int len, ret;
 
-	set_arg(REG_EAX, __NR_munmap, machine_code);
-	set_arg(REG_EBX, (unsigned int)start, machine_code);
-	set_arg(REG_ECX, size, machine_code);
+	set_reg(REG_EAX, __NR_munmap, machine_code);
+	set_reg(REG_EBX, (unsigned int)start, machine_code);
+	set_reg(REG_ECX, size, machine_code);
 
 	len = get_codelen(machine_code);
 
@@ -92,8 +93,8 @@ int remote_close(pid_t pid, int fd)
 {
 	int len, ret;
 
-	set_arg(REG_EAX, __NR_close, machine_code);
-	set_arg(REG_EBX, fd, machine_code);
+	set_reg(REG_EAX, __NR_close, machine_code);
+	set_reg(REG_EBX, fd, machine_code);
 
 	len = get_codelen(machine_code);
 
@@ -118,9 +119,9 @@ int remote_open(pid_t pid, char *path, int flags)
 		write_data(pid, ptr, path, strlen(path));
 		ptrace_detach(pid);
 
-		set_arg(REG_EAX, __NR_open, machine_code);
-		set_arg(REG_EBX, (unsigned int)ptr, machine_code);
-		set_arg(REG_ECX, flags, machine_code);
+		set_reg(REG_EAX, __NR_open, machine_code);
+		set_reg(REG_EBX, (unsigned int)ptr, machine_code);
+		set_reg(REG_ECX, flags, machine_code);
 
 		len = get_codelen(machine_code);
 
@@ -134,19 +135,80 @@ int remote_open(pid_t pid, char *path, int flags)
 
 }
 
+int remote_write(pid_t pid, int fd, unsigned char* buf, int data_len)
+{
+	int len, ret;
+	unsigned long ptr;
+
+	ptr = (unsigned long)remote_mmap(pid, NULL, data_len+128, PROT_READ|PROT_WRITE, 
+			MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
+
+	if(ptr > 0)
+	{
+		ptrace_attach(pid);
+		write_data(pid, ptr, buf, data_len);
+		ptrace_detach(pid);
+
+		set_reg(REG_EAX, __NR_write, machine_code);
+		set_reg(REG_EBX, fd, machine_code);
+		set_reg(REG_ECX, (unsigned int)ptr, machine_code);
+		set_reg(REG_EDX, data_len, machine_code);
+
+		len = get_codelen(machine_code);
+
+		ret = execute_code(pid, machine_code, len);
+
+		// release string memory space
+		remote_munmap(pid, (void*)ptr, data_len+128);
+	}
+
+	return ret;
+}
+
+int remote_read(pid_t pid, int fd, unsigned char* buf, int data_len)
+{
+	int len, ret;
+	unsigned long ptr;
+
+	ptr = (unsigned long)remote_mmap(pid, NULL, data_len+128, PROT_READ|PROT_WRITE, 
+			MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
+
+	if(ptr > 0)
+	{
+		set_reg(REG_EAX, __NR_read, machine_code);
+		set_reg(REG_EBX, fd, machine_code);
+		set_reg(REG_ECX, (unsigned int)ptr, machine_code);
+		set_reg(REG_EDX, data_len, machine_code);
+
+		len = get_codelen(machine_code);
+		ret = execute_code(pid, machine_code, len);
+
+		// retrieve read data from target process
+		ptrace_attach(pid);
+		read_data(pid, ptr, buf, data_len);
+		ptrace_detach(pid);
+
+		printf("%s\n", buf);
+
+		// release string memory space
+		remote_munmap(pid, (void*)ptr, data_len+128);
+	}
+
+	return ret;
+}
 /* -- Remote mmap function -- */
 void* remote_mmap(pid_t pid, void *start, size_t length, int prot, int flags, int fd, int offset)
 {
 	int len;
 	void* ret;
 
-	set_arg(REG_EAX, __NR_mmap2, machine_code);
-	set_arg(REG_EBX, (unsigned int)start, machine_code);
-	set_arg(REG_ECX, length, machine_code);
-	set_arg(REG_EDX, prot, machine_code);
-	set_arg(REG_ESI, flags, machine_code);
-	set_arg(REG_EDI, fd, machine_code);
-	set_arg(REG_EBP, offset, machine_code);
+	set_reg(REG_EAX, __NR_mmap2, machine_code);
+	set_reg(REG_EBX, (unsigned int)start, machine_code);
+	set_reg(REG_ECX, length, machine_code);
+	set_reg(REG_EDX, prot, machine_code);
+	set_reg(REG_ESI, flags, machine_code);
+	set_reg(REG_EDI, fd, machine_code);
+	set_reg(REG_EBP, offset, machine_code);
 
 	len = get_codelen(machine_code);
 
@@ -156,7 +218,7 @@ void* remote_mmap(pid_t pid, void *start, size_t length, int prot, int flags, in
 }
 
 /* -- set movl operand -- */
-void set_arg(int reg, unsigned int val, char *code)
+void set_reg(int reg, unsigned int val, char *code)
 {
 	switch(reg){
 		case REG_EBX:
