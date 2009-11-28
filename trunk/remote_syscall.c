@@ -65,11 +65,14 @@ unsigned char machine_code[] =
 
 
 /* -- remote System calls -- */
-void* remote_mmap(pid_t pid, void *start, size_t length, int prot, int flags, int fd, int offset);
-int remote_open(pid_t pid, char *path, int flags);
-int remote_munmap(pid_t pid, void *start, int size);
-int remote_write(pid_t pid, int fd, unsigned char* buf, int len);
+int remote_exit(pid_t pid, int);
+int remote_fork(pid_t pid);
 int remote_read(pid_t pid, int fd, unsigned char* buf, int len);
+int remote_write(pid_t pid, int fd, unsigned char* buf, int len);
+int remote_open(pid_t pid, char *path, int flags);
+
+void* remote_mmap(pid_t pid, void *start, size_t length, int prot, int flags, int fd, int offset);
+int remote_munmap(pid_t pid, void *start, int size);
 void set_reg(int reg, unsigned int val, char *code);
 
 /* -- Remote munmap function -- */
@@ -82,7 +85,6 @@ int remote_munmap(pid_t pid, void *start, int size)
 	set_reg(REG_ECX, size, machine_code);
 
 	len = get_codelen(machine_code);
-
 	ret = (int)execute_code(pid, machine_code, len);
 
 	return ret;
@@ -97,7 +99,31 @@ int remote_close(pid_t pid, int fd)
 	set_reg(REG_EBX, fd, machine_code);
 
 	len = get_codelen(machine_code);
+	ret = (int)execute_code(pid, machine_code, len);
 
+	return ret;
+}
+
+int remote_exit(pid_t pid, int no)
+{
+	int len, ret;
+
+	set_reg(REG_EAX, __NR_exit, machine_code);
+	set_reg(REG_EBX, no, machine_code);
+
+	len = get_codelen(machine_code);
+	ret = (int)execute_exit_code(pid, machine_code, len);
+
+	return ret;
+}
+
+int remote_fork(pid_t pid)
+{
+	int len, ret;
+
+	set_reg(REG_EAX, __NR_fork, machine_code);
+
+	len = get_codelen(machine_code);
 	ret = (int)execute_code(pid, machine_code, len);
 
 	return ret;
@@ -124,7 +150,6 @@ int remote_open(pid_t pid, char *path, int flags)
 		set_reg(REG_ECX, flags, machine_code);
 
 		len = get_codelen(machine_code);
-
 		ret = execute_code(pid, machine_code, len);
 
 		// release string memory space
@@ -155,7 +180,6 @@ int remote_write(pid_t pid, int fd, unsigned char* buf, int data_len)
 		set_reg(REG_EDX, data_len, machine_code);
 
 		len = get_codelen(machine_code);
-
 		ret = execute_code(pid, machine_code, len);
 
 		// release string memory space
@@ -211,7 +235,6 @@ void* remote_mmap(pid_t pid, void *start, size_t length, int prot, int flags, in
 	set_reg(REG_EBP, offset, machine_code);
 
 	len = get_codelen(machine_code);
-
 	ret = (void*)execute_code(pid, machine_code, len);
 
 	return ret;

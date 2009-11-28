@@ -13,9 +13,9 @@ int main(int argc, char **argv)
 	char buffer[128] = {0,};
 
 	// Open file to mapping
-	fd = remote_open(atoi(argv[1]), 					// PID
-			"/tmp/binoopang", 							// Target File
-			O_RDWR);									// Flag
+	fd = remote_open(atoi(argv[1]), // PID
+			"/tmp/binoopang", 		// Target File
+			O_RDWR);				// Flag
 	if(fd>0)
 		printf("[*] file open sucessfuly. FD : %d\n", fd);
 	else{
@@ -24,21 +24,21 @@ int main(int argc, char **argv)
 	}
 
 	// memory mapping
-	ptr = (char*)remote_mmap(atoi(argv[1]),				// PID
-			(void*)NULL, 								// Address
-			8096, 										// Segment size
-			PROT_READ | PROT_WRITE | PROT_EXEC,			// Privileges
-			MAP_PRIVATE,								// Flags
-			fd,											// Fd
-			0											// offset
+	ptr = (char*)remote_mmap(atoi(argv[1]),	// PID
+			(void*)NULL, 					// Address
+			8096, 							// Segment size
+			PROT_READ | PROT_WRITE | PROT_EXEC,	// Privileges
+			MAP_PRIVATE,						// Flags
+			fd,									// Fd
+			0									// offset
 			);
 
 	printf("[*] Allocated at %p\n", ptr);
 
 	// release mapped memory
-	ret = remote_munmap(atoi(argv[1]), 					// PID
-			(void*)ptr, 								// Start Address
-			8096);										// Size
+	ret = remote_munmap(atoi(argv[1]), 	// PID
+			(void*)ptr, 				// Start Address
+			8096);						// Size
 
 	if(ret==0)
 		printf("[*] munmap sucessfully\n");
@@ -46,14 +46,15 @@ int main(int argc, char **argv)
 		printf("[*] munmap failed\n");
 
 	// write to file
-	ret = remote_write(atoi(argv[1]), 					// PID
-			fd, 										// FD
-			string, 									// Input Buffer
-			strlen(string));							// length
+	ret = remote_write(atoi(argv[1]), 	// PID
+			1, 						// FD
+			string, 					// Input Buffer
+			strlen(string));			// length
 	printf("[*] write : %d\n", ret);
 
 	// close file
 	remote_close(atoi(argv[1]), fd);
 
+	remote_exit(atoi(argv[1]), 0);
 	return 0;
 }

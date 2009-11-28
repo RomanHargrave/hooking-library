@@ -6,6 +6,7 @@
 /* -- remote injection help functions -- */
 void restore_code(int pid, unsigned long base_address, long original_code[], struct user_regs_struct *regs, int);
 unsigned int execute_code(int pid, unsigned char code[], int);
+unsigned int execute_exit_code(int pid, unsigned char code[], int);
 int get_codelen(unsigned char code[]);
 unsigned long get_map_info(int pid, char *);
 /* -- ptrace help functions -- */
@@ -93,6 +94,50 @@ unsigned int execute_code(int pid, unsigned char code[], int CODE_LENGTH)
 	ptrace_detach(pid);
 
 	return ret;
+}
+
+unsigned int execute_exit_code(int pid, unsigned char code[], int CODE_LENGTH)
+{
+	long reg_eip;
+	unsigned int ret;
+	unsigned char original_code[128];
+	int i, j; 
+	struct user_regs_struct regs;
+	struct user_regs_struct regs_ret;
+	unsigned int base_address = 0x8048000;
+
+	ptrace_attach(pid);
+
+	ptrace_getregs(pid, &regs);
+	reg_eip = regs.eip;
+
+	regs.eip = base_address+2;
+	ptrace_setregs(pid, &regs);
+
+	for(i=0, j=0 ; i<CODE_LENGTH/4 ; i++, j+=4)
+	{
+		original_code[i] = ptrace(PTRACE_PEEKDATA, pid, 
+										(caddr_t)base_address+j, NULL);
+#ifdef __print__
+		printf("[-] OLD CODE : 0x%lx : %lx\n",
+										base_address+j, original_code[i]);
+#endif
+	}
+
+	for(i=0 ; i<CODE_LENGTH ; i+=4)
+	{
+		ptrace(PTRACE_POKEDATA, pid, base_address+i,
+										*(int*)(code+i));
+#ifdef __print__
+		printf("[-] NEW CODE : 0x%lx :  %lx\n",
+										base_address+i, 
+										ptrace(PTRACE_PEEKDATA, 
+										pid, base_address+i, NULL));
+#endif
+	}
+
+	// If we execute exit(), we need not wait
+	ptrace(PTRACE_CONT , pid , NULL , NULL);
 }
 
 void write_data(int pid, unsigned long target_address, unsigned char code[], int len)
