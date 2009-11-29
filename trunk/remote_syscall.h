@@ -62,7 +62,6 @@ unsigned char machine_code[] =
 	syscall						// Interrupt!!
 	FINI_STUB;
 
-
 /* -- remote System calls -- */
 int remote_exit(pid_t pid, int);
 int remote_fork(pid_t pid);
