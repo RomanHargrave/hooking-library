@@ -1,7 +1,7 @@
 /* ------ This is remote system call demonstration program :) ------- */
 
 #include <stdio.h>
-#include "remote_syscall.c"
+#include "remote_syscall.h"
 
 char *string = "[*] I am remote message !!\n";
 
