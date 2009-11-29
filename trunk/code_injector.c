@@ -3,12 +3,30 @@
 #ifndef CODE_INJECTOR_C
 #define CODE_INJECTOR_C 1
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <elf.h>
+
+/* -- Memory mapping information structure -- */
+typedef struct map_info_s{
+	unsigned long begin;
+	unsigned long end;
+	char perm[8];
+	unsigned long foo;
+	char dev[8];
+	unsigned int inode;
+	char mapname[PATH_MAX];
+} MAP_INFO, *PMAP_INFO;
+
+PMAP_INFO map[128];
+
 /* -- remote injection help functions -- */
 void restore_code(int pid, unsigned long base_address, long original_code[], struct user_regs_struct *regs, int);
 unsigned int execute_code(int pid, unsigned char code[], int);
 unsigned int execute_exit_code(int pid, unsigned char code[], int);
 int get_codelen(unsigned char code[]);
-unsigned long get_map_info(int pid, char *);
+PMAP_INFO* get_map_info(int pid);
 /* -- ptrace help functions -- */
 void ptrace_detach(int pid);
 void ptrace_cont(int pid);
@@ -16,9 +34,8 @@ void ptrace_setregs(int pid, struct user_regs_struct*);
 void ptrace_getregs(int pid, struct user_regs_struct*);
 void ptrace_attach(int pid);
 char *read_str(int pid, unsigned long addr, int len);
-void * read_data(int pid, unsigned long addr, void *vptr, int len);
+void *read_data(int pid, unsigned long addr, void *vptr, int len);
 void write_data(int pid, unsigned long target_address, unsigned char code[], int len);
-
 
 /* -- Restore original code -- */
 void restore_code(int pid, unsigned long base_address, long original_code[], 
@@ -151,10 +168,12 @@ void write_data(int pid, unsigned long target_address, unsigned char code[], int
 	}
 }
 
-unsigned long get_map_info(int pid, char *name)
+/* -- retrieve remote process's memory mapping information -- */
+PMAP_INFO* get_map_info(int pid)
 {
 	char fname[PATH_MAX];
 	unsigned long writable=0, total=0, shared=0;
+	int i=0;
 	FILE *f;
 
 	sprintf(fname, "/proc/%ld/maps", (long)pid);
@@ -174,17 +193,30 @@ unsigned long get_map_info(int pid, char *name)
 		unsigned long begin, end, size, inode, foo;
 		int n;
 
+		map[i] = malloc(sizeof(MAP_INFO));
+
 		if(fgets(buf, sizeof(buf), f) == 0)
 			break;
 
 		mapname[0] = '\0';
 		sscanf(buf, "%lx-%lx %4s %lx %5s %ld %s", &begin, &end, perm,
 				&foo, dev, &inode, mapname);
-		
-		if(strstr(perm, name) && !strstr(mapname, "vdso"))
-			return begin;
+
+		map[i]->begin = begin;
+		map[i]->end = end;
+		strcpy(map[i]->perm, perm);
+		map[i]->foo = foo;
+		strcpy(map[i]->dev, dev);
+		map[i]->inode = inode;
+		strcpy(map[i]->mapname, mapname);
+
+		i++;
 	}
-	return 0;
+
+	map[i] = (PMAP_INFO)NULL;
+
+	/* -- we should free before termination of program -- */
+	return map;
 }
 
 int get_codelen(unsigned char code[])
@@ -217,7 +249,6 @@ char *read_str(int pid, unsigned long addr, int len)
 	read_data(pid, addr, ret, len);
 	return ret;
 }
-
 
 void ptrace_attach(int pid)
 {

@@ -8,9 +8,20 @@ char *string = "[*] I am remote message !!\n";
 int main(int argc, char **argv)
 {
 	int fd;
-	int ret;
+	int ret, i=0;
 	char *ptr = NULL;
 	char buffer[128] = {0,};
+
+	PMAP_INFO *map = get_map_info(atoi(argv[1]));
+
+	while(map[i]!=NULL)
+	{
+		printf("[*] 0x%lx - 0x%lx %s %s\n",
+				map[i]->begin, map[i]->end, 
+				map[i]->perm, map[i]->mapname);
+		free(map[i]);
+		i++;
+	}
 
 	// Open file to mapping
 	fd = remote_open(atoi(argv[1]), // PID
@@ -54,7 +65,6 @@ int main(int argc, char **argv)
 
 	// close file
 	remote_close(atoi(argv[1]), fd);
-
 	remote_exit(atoi(argv[1]), 0);
 	return 0;
 }
