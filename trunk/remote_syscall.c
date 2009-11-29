@@ -55,6 +55,7 @@ int remote_fork(pid_t pid)
 	return ret;
 }
 
+
 /* -- Remote open function -- */
 int remote_open(pid_t pid, char *path, int flags)
 {
