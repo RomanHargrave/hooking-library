@@ -21,6 +21,7 @@ unsigned char dlopen_code[] =
 	add_esp 	"\x8"				// Clean stack
 	trap;
 
+
 /* -- Entry point!! -- */
 int main(int argc, char **argv)
 {
