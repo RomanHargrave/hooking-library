@@ -4,9 +4,14 @@
 #define CODE_INJECTOR_C 1
 
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
+#include <stdlib.h>
 #include <elf.h>
+#include <sys/ptrace.h>
+#include <sys/user.h>
+#include <sys/stat.h>
+#include <limits.h>
+#include <sys/wait.h>
 
 /* -- Memory mapping information structure -- */
 typedef struct map_info_s{

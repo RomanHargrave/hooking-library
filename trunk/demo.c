@@ -66,5 +66,6 @@ int main(int argc, char **argv)
 	// close file
 	remote_close(atoi(argv[1]), fd);
 	remote_exit(atoi(argv[1]), 0);
+
 	return 0;
 }
