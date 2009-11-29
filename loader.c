@@ -14,11 +14,11 @@ int shsstroff, section_base;
 
 /* -- Machine code -- */
 unsigned char dlopen_code[] =
-	push 		"\x02\x00\x00\x00"		// Second Argument
-	push 		"\x00\x00\x00\x00"		// First Argument
+	push 		"\x02\x00\x00\x00"	// Second Argument
+	push 		"\x00\x00\x00\x00"	// First Argument
 	movl_ecx 	"\x00\x00\x00\x00"	// Set Function Pointer
-	call_ecx					// Call dlopen
-	add_esp 	"\x8"			// Clean stack
+	call_ecx						// Call dlopen
+	add_esp 	"\x8"				// Clean stack
 	trap;
 
 /* -- Entry point!! -- */
