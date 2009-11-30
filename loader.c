@@ -50,6 +50,7 @@ int main(int argc, char **argv)
 	sym = get_dynsymbol_value(map[i]->mapname, "dlopen");
 	// make virtual memory address
 	dlopen_addr = map[i]->begin + sym->st_value;
+	free(sym);
 
 	printf("[*] dlopen address : 0x%lx\n", dlopen_addr);
 	// allocate memory to save strings
