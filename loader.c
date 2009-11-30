@@ -27,6 +27,7 @@ int main(int argc, char **argv)
 	int flag=0, ret, i=0, len;
 	long dlopen_addr, ptr;
 	char str[128];
+	void *handle = NULL;
 	PMAP_INFO *map = NULL;
 	map = get_map_info(atoi(argv[1]));	
 
@@ -49,11 +50,15 @@ int main(int argc, char **argv)
 	// make virtual memory address
 	dlopen_addr = map[i]->begin + ret;
 
+	printf("[*] dlopen address : 0x%lx\n", dlopen_addr);
 	// allocate memory to save strings
 	ptr = (long)remote_mmap(atoi(argv[1]), (void*)NULL, 8096,
 			PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 
+	printf("[*] Temporary Memory allocated at 0x%lx\n", ptr);
+
 	// write file path into target process
+	printf("[*] writing shared object path at 0x%lx\n", ptr);
 	ptrace_attach(atoi(argv[1]));
 	write_data(atoi(argv[1]), ptr, argv[2], strlen(argv[2]));
 	ptrace_detach(atoi(argv[1]));
@@ -66,11 +71,19 @@ int main(int argc, char **argv)
 	len = get_codelen(dlopen_code);
 
 	// execute dlopen
-	ret = execute_code(atoi(argv[1]), dlopen_code, len);
+	printf("[*] Executing dlopen()\n");
+	handle = execute_code(atoi(argv[1]), dlopen_code, len);
+
+	if(handle)
+		printf("[*] Shared object load sucessfully\n");
+	else
+		printf("[*] Shared object load failed\n");
 
 	// release memory
+	printf("[*] release temporary memory\n");
 	remote_munmap(atoi(argv[1]), (void*)ptr, 8096);
 
+	printf("[*] done\n");
 	return 0;
 }
 	
