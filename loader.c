@@ -100,6 +100,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
+/* -- print Injected shared object memory mapped information -- */
 void *print_mapped_info(int pid, char *object)
 {
 	int i=0;
@@ -118,6 +119,8 @@ void *print_mapped_info(int pid, char *object)
 	}
 
 }
+
+/* -- Get Shared Object file name -- */
 char *get_object_name(const char *path)
 {
 	char *ptr;
