@@ -32,6 +32,7 @@ int main(int argc, char **argv)
 	PMAP_INFO *map = NULL;
 	map = get_map_info(atoi(argv[1]));	
 
+	// Check libdl.so in target process
 	while(map[i]!=NULL){
 		if(strstr(map[i]->mapname, "libdl") && strstr(map[i]->perm, "x")){
 			flag=1;
@@ -40,6 +41,7 @@ int main(int argc, char **argv)
 		i++;
 	}
 
+	// Error check
 	if(flag==0)
 	{
 		fprintf(stderr, "[-] Target process has no libdl ;(\n");
@@ -123,7 +125,6 @@ void *print_mapped_info(int pid, char *object)
 		}
 		free(map[i++]);
 	}
-
 }
 
 /* -- Get Shared Object file name -- */
