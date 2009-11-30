@@ -42,7 +42,13 @@ int main(int argc, char **argv)
 
 	if(flag==0)
 	{
-		fprintf(stderr, "Target process has no libdl ;(\n");
+		fprintf(stderr, "[-] Target process has no libdl ;(\n");
+		exit(-1);
+	}
+
+	if(argv[2][0]!='/')
+	{
+		fprintf(stderr, "[-] You should use Absolute path for Shared Object\n");
 		exit(-1);
 	}
 

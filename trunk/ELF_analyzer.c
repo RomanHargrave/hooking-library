@@ -1,8 +1,6 @@
-/* ELF Shared Object Loader by binoopang [binoopang@gmail.com] ----- *
- * This Program is Shared object loader. You can Inject new Shared Object
- * into another process while running.
- * First argument is Process ID and the another is Shared Object Path
- * a second argument of dlopen is fixed to RTLD_LAZY           ----- */
+/* -- ELF Analyzer by binoopang [binoopang@gmail.com] ---------------- *
+ * This file contains the ELF Analyzing functions.
+ * If you want to retrieve ELF information, you can use it.        --- */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,7 +52,6 @@ Elf32_Sym* get_dynsymbol_value(const char *path, char *name)
 				return sym;
 		}
 	}
-		   	
 	return 0;
 }
 
@@ -83,7 +80,6 @@ Elf32_Shdr* get_section_byName(FILE *fp, int size, int ndx, char* name)
 
 		if(!strcmp(str, name))
 			return shdr;
-
 	}
 	return NULL;
 }
