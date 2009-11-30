@@ -1,3 +1,5 @@
+/* -- Target program -- */
+
 #include <stdio.h>
 
 int main()
