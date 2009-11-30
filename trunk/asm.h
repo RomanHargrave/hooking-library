@@ -1,4 +1,6 @@
-/* -- Assembly Codes ---------------------------------------------- */
+/* -- Assembly Codes by binoopang [binoopang@gmail.com]------------ *
+ * This file contains the Machine code defines. 
+ * This define is used for more readable                      ----- */
 
 #ifndef ASM_H
 #define ASM_H 
