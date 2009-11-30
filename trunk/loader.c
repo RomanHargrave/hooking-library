@@ -7,10 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "remote_syscall.h"
-
-int get_dynsymbol_value(const char *path, char *);
-Elf32_Shdr* get_section_byName(FILE *fp, int size, int ndx, char*);
-int shsstroff, section_base;
+#include "ELF_analyzer.c"
 
 /* -- Machine code -- */
 unsigned char dlopen_code[] =
@@ -21,6 +18,9 @@ unsigned char dlopen_code[] =
 	add_esp 	"\x8"				// Clean stack
 	trap;
 
+char *get_object_name(const char *);
+void *print_mapped_info(int pid, char* object);
+
 /* -- Entry point!! -- */
 int main(int argc, char **argv)
 {
@@ -28,6 +28,7 @@ int main(int argc, char **argv)
 	long dlopen_addr, ptr;
 	char str[128];
 	void *handle = NULL;
+	Elf32_Sym* sym = NULL;
 	PMAP_INFO *map = NULL;
 	map = get_map_info(atoi(argv[1]));	
 
@@ -45,10 +46,10 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	// retrieve dlopen's file offset
-	ret = get_dynsymbol_value(map[i]->mapname, "dlopen");
+	// retrieve dlopen's symbol structure pointer 
+	sym = get_dynsymbol_value(map[i]->mapname, "dlopen");
 	// make virtual memory address
-	dlopen_addr = map[i]->begin + ret;
+	dlopen_addr = map[i]->begin + sym->st_value;
 
 	printf("[*] dlopen address : 0x%lx\n", dlopen_addr);
 	// allocate memory to save strings
@@ -72,7 +73,7 @@ int main(int argc, char **argv)
 
 	// execute dlopen
 	printf("[*] Executing dlopen()\n");
-	handle = execute_code(atoi(argv[1]), dlopen_code, len);
+	handle = (void*)execute_code(atoi(argv[1]), dlopen_code, len);
 
 	if(handle)
 		printf("[*] Shared object load sucessfully\n");
@@ -83,83 +84,47 @@ int main(int argc, char **argv)
 	printf("[*] release temporary memory\n");
 	remote_munmap(atoi(argv[1]), (void*)ptr, 8096);
 
-	printf("[*] done\n");
-	return 0;
-}
-	
-/* -- Retrieve dlopen Symbol value -- */
-int get_dynsymbol_value(const char *path, char *name)
-{
-	FILE *fp = fopen(path, "r");
-	Elf32_Ehdr *ehdr = malloc(sizeof(Elf32_Ehdr));
-	Elf32_Shdr *shdr = NULL;
-	Elf32_Shdr *shstr = NULL;
-	Elf32_Sym *sym = malloc(sizeof(Elf32_Sym));
-	int i, symtab_ndx;
-	char str[128];
-
-	if(fp==NULL)
-	{
-		fprintf(stderr, "Can not open [%s]\n", path);
-		exit(-1);
-	}
-
-	// read elf header to retrieve section information
-	fread(ehdr, sizeof(Elf32_Ehdr), 1, fp);
-
-	// calculate symbol string table section offset
-	section_base = ehdr->e_shoff;
-	shsstroff = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shstrndx);
-
-	shdr = get_section_byName(fp, ehdr->e_shentsize, ehdr->e_shnum, ".dynsym");
-	shstr = get_section_byName(fp, ehdr->e_shentsize, ehdr->e_shnum, ".dynstr");
-
-	if(shdr!=NULL){
-		symtab_ndx = shdr->sh_size / sizeof(Elf32_Sym);
-		fseek(fp, shdr->sh_offset, SEEK_SET);
-
-		for(i=0 ; i<symtab_ndx ; i++)
-		{
-			memset(str, 0, 128);
-			fseek(fp, shdr->sh_offset + i*sizeof(Elf32_Sym), SEEK_SET);
-			fread(sym, sizeof(Elf32_Sym), 1, fp);
-			fseek(fp, shstr->sh_offset + sym->st_name, SEEK_SET);
-			fgets(str, 128, fp);
-
-			if(strstr(str, name))
-				return sym->st_value;
+	while(map[i]!=NULL){
+		if(strstr(map[i]->mapname, "libdl") && strstr(map[i]->perm, "x")){
+			flag=1;
+			break;
 		}
+		i++;
 	}
-		   	
+
+	print_mapped_info(atoi(argv[1]), get_object_name(argv[2]));
+
+	printf("[*] done\n");
+	get_object_name(argv[2]);
 	return 0;
 }
 
-/* -- Retrieve Section Pointer usign section name -- */
-Elf32_Shdr* get_section_byName(FILE *fp, int size, int ndx, char* name)
+void *print_mapped_info(int pid, char *object)
 {
-	int i;
-	long shstable;
-	char str[128];
+	int i=0;
+	PMAP_INFO *map = NULL;
+	map = get_map_info(pid);	
 
-	Elf32_Shdr *shdr = malloc(sizeof(Elf32_Shdr));
-	
-	fseek(fp, shsstroff, SEEK_SET);
-	fread(shdr, sizeof(Elf32_Shdr), 1, fp);
-	shstable = shdr->sh_offset;
+	printf("[*] Here is the New Shared object mapped info ==\n");
 
-	fseek(fp, section_base, SEEK_SET);
-
-	for(i=0 ; i<ndx ; i++){
-		memset(str, 0, 128);
-		fseek(fp, section_base + i*sizeof(Elf32_Shdr), SEEK_SET);
-		fread(shdr, sizeof(Elf32_Shdr), 1, fp);
-
-		fseek(fp, shstable + shdr->sh_name, SEEK_SET);
-		fgets(str, 128, fp);
-
-		if(!strcmp(str, name))
-			return shdr;
-
+	while(map[i]!=NULL){
+		if(strstr(map[i]->mapname, object)){
+			printf("[-] 0x%lx - 0x%lx %s %s\n",
+					map[i]->begin, map[i]->end, map[i]->perm,
+					map[i]->mapname);
+		}
+		free(map[i++]);
 	}
-	return NULL;
+
+}
+char *get_object_name(const char *path)
+{
+	char *ptr;
+	int len = strlen(path)-1;
+	while(path[len]!='/')
+		len--;
+
+	ptr = (char*)path+len+1;
+
+	return ptr;
 }
