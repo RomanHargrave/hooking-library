@@ -5,15 +5,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* -- proto types -- */
 Elf32_Sym* get_dynsymbol_value(FILE *, char *);
 Elf32_Sym* get_symbol_value(FILE* , char *);
-Elf32_Shdr* get_section_byName(FILE *fp, int size, int ndx, char*);
-int shsstroff, section_base;
+Elf32_Shdr* get_section_byName(FILE *fp, char*);
+Elf32_Ehdr* get_elf_header(FILE *fp);
+
+/* -- Get ELF Header Pointer -- */
+Elf32_Ehdr* get_elf_header(FILE* fp)
+{
+	Elf32_Ehdr* ehdr = malloc(sizeof(Elf32_Ehdr));
+	fseek(fp, 0, SEEK_SET);
+	fread(ehdr, sizeof(Elf32_Ehdr), 1, fp);
+
+	return ehdr;
+}
 
 /* -- Get Symbol Structure pointer -- */
 Elf32_Sym* get_dynsymbol_value(FILE *fp, char *name)
 {
-	Elf32_Ehdr *ehdr = malloc(sizeof(Elf32_Ehdr));
+	Elf32_Ehdr *ehdr = NULL;
 	Elf32_Shdr *shdr = NULL;
 	Elf32_Shdr *shstr = NULL;
 	Elf32_Sym *sym = malloc(sizeof(Elf32_Sym));
@@ -21,15 +32,12 @@ Elf32_Sym* get_dynsymbol_value(FILE *fp, char *name)
 	char str[128];
 
 	// read elf header to retrieve section information
-	fseek(fp, 0, SEEK_SET);
-	fread(ehdr, sizeof(Elf32_Ehdr), 1, fp);
+	ehdr = get_elf_header(fp);
 
-	// calculate symbol string table section offset
-	section_base = ehdr->e_shoff;
-	shsstroff = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shstrndx);
+	shdr = get_section_byName(fp, ".dynsym");
+	shstr = get_section_byName(fp, ".dynstr");
 
-	shdr = get_section_byName(fp, ehdr->e_shentsize, ehdr->e_shnum, ".dynsym");
-	shstr = get_section_byName(fp, ehdr->e_shentsize, ehdr->e_shnum, ".dynstr");
+	free(ehdr);
 
 	if(shdr!=NULL){
 		symtab_ndx = shdr->sh_size / sizeof(Elf32_Sym);
@@ -53,7 +61,7 @@ Elf32_Sym* get_dynsymbol_value(FILE *fp, char *name)
 /* -- Get Symbol Structure pointer -- */
 Elf32_Sym* get_symbol_value(FILE *fp, char *name)
 {
-	Elf32_Ehdr *ehdr = malloc(sizeof(Elf32_Ehdr));
+	Elf32_Ehdr *ehdr = NULL;
 	Elf32_Shdr *shdr = NULL;
 	Elf32_Shdr *shstr = NULL;
 	Elf32_Sym *sym = malloc(sizeof(Elf32_Sym));
@@ -62,15 +70,12 @@ Elf32_Sym* get_symbol_value(FILE *fp, char *name)
 
 
 	// read elf header to retrieve section information
-	fseek(fp, 0, SEEK_SET);
-	fread(ehdr, sizeof(Elf32_Ehdr), 1, fp);
+	ehdr = get_elf_header(fp);
 
-	// calculate symbol string table section offset
-	section_base = ehdr->e_shoff;
-	shsstroff = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shstrndx);
+	shdr = get_section_byName(fp, ".symtab");
+	shstr = get_section_byName(fp, ".strtab");
 
-	shdr = get_section_byName(fp, ehdr->e_shentsize, ehdr->e_shnum, ".symtab");
-	shstr = get_section_byName(fp, ehdr->e_shentsize, ehdr->e_shnum, ".strtab");
+	free(ehdr);
 
 	if(shdr!=NULL){
 		symtab_ndx = shdr->sh_size / sizeof(Elf32_Sym);
@@ -91,14 +96,22 @@ Elf32_Sym* get_symbol_value(FILE *fp, char *name)
 	return NULL;
 }
 /* -- Retrieve Section Pointer usign section name -- */
-Elf32_Shdr* get_section_byName(FILE *fp, int size, int ndx, char* name)
+Elf32_Shdr* get_section_byName(FILE *fp, char* name)
 {
-	int i;
-	long shstable;
+	int i, size, ndx;
+	int shsstroff, section_base;
+	int shstable;
 	char str[128];
-
+	Elf32_Ehdr *ehdr = get_elf_header(fp);
 	Elf32_Shdr *shdr = malloc(sizeof(Elf32_Shdr));
-	
+
+	// calculate symbol string table section offset
+	section_base = ehdr->e_shoff;
+	shsstroff = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shstrndx);
+	size = ehdr->e_shentsize;
+	ndx = ehdr->e_shnum;
+	free(ehdr);
+
 	fseek(fp, shsstroff, SEEK_SET);
 	fread(shdr, sizeof(Elf32_Shdr), 1, fp);
 	shstable = shdr->sh_offset;
