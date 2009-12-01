@@ -5,7 +5,6 @@
 #ifndef ASM_H
 #define ASM_H 
 
-
 #ifdef __i386__
 /* -- 32bit system -- */
 #define INIT_STUB 	"\x55\x53\x56\x57\x31\xd2\x31\xf6\x31\xc9" 	// PUSH & XOR
