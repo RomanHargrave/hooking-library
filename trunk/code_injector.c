@@ -259,50 +259,50 @@ char *read_str(int pid, unsigned long addr, int len)
 
 void ptrace_attach(int pid)
 {
-  if((ptrace(PTRACE_ATTACH , pid , NULL , NULL)) < 0) {
-   perror("ptrace_attach");
-   exit(-1);
-  }
+	if((ptrace(PTRACE_ATTACH , pid , NULL , NULL)) < 0) {
+		perror("ptrace_attach");
+		exit(-1);
+	}
 
-  waitpid(pid , NULL , WUNTRACED);
+	waitpid(pid , NULL , WUNTRACED);
 }
 
 void ptrace_getregs(int pid, struct user_regs_struct *regs)
 {
-  if((ptrace(PTRACE_GETREGS, pid, NULL, regs)) < 0)
-  {
-          perror("ptrace_getregs");
-          exit(-1);
-  }
+	if((ptrace(PTRACE_GETREGS, pid, NULL, regs)) < 0)
+	{
+		perror("ptrace_getregs");
+		exit(-1);
+	}
 }
 
 void ptrace_setregs(int pid, struct user_regs_struct *regs)
 {
-  if((ptrace(PTRACE_SETREGS, pid, NULL, regs)) < 0)
-  {
-          perror("ptrace_getregs");
-          exit(-1);
-  }
+	if((ptrace(PTRACE_SETREGS, pid, NULL, regs)) < 0)
+	{
+		perror("ptrace_getregs");
+		exit(-1);
+	}
 }
 
 void ptrace_cont(int pid)
 {
-  int s;
-  if((ptrace(PTRACE_CONT , pid , NULL , NULL)) < 0) {
-   perror("ptrace_cont");
-   exit(-1);
-  }
+	int s;
+	if((ptrace(PTRACE_CONT , pid , NULL , NULL)) < 0) {
+		perror("ptrace_cont");
+		exit(-1);
+	}
 
-  while (!WIFSTOPPED(s)) waitpid(pid , &s , WNOHANG);
+	while (!WIFSTOPPED(s)) waitpid(pid , &s , WNOHANG);
 }
 
 
 void ptrace_detach(int pid)
 {
-  if(ptrace(PTRACE_DETACH, pid , NULL , NULL) < 0) {
-   perror("ptrace_detach");
-   exit(-1);
-  }
+	if(ptrace(PTRACE_DETACH, pid , NULL , NULL) < 0) {
+		perror("ptrace_detach");
+		exit(-1);
+	}
 }
 
 void free_map(PMAP_INFO *map)
