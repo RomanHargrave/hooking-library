@@ -20,6 +20,7 @@ unsigned char dlopen_code[] =
 
 char *get_object_name(const char *);
 void *print_mapped_info(int pid, char* object);
+int verify_shared_object(const char*);
 
 /* -- Entry point!! -- */
 int main(int argc, char **argv)
@@ -68,6 +69,12 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
+	if(!verify_shared_object(argv[2]))
+	{
+		fclose(fp);
+		exit(-1);
+	}
+
 	// retrieve dlopen's symbol structure pointer 
 	sym = get_dynsymbol_value(fp, "dlopen");
 	// make virtual memory address
@@ -99,9 +106,9 @@ int main(int argc, char **argv)
 	handle = (void*)execute_code(atoi(argv[1]), dlopen_code, len);
 
 	if(handle)
-		printf("[*] Shared object load sucessfully\n");
+		printf("[*] Injecting sucessfully\n");
 	else{
-		printf("[-] Shared object load failed\n");
+		printf("[-] Injecting failed\n");
 		exit(-1);
 	}
 
@@ -115,6 +122,33 @@ int main(int argc, char **argv)
 	fclose(fp);
 	printf("[*] done\n");
 	get_object_name(argv[2]);
+	return 0;
+}
+
+int verify_shared_object(const char* path)
+{
+	FILE *fp = fopen(path, "r");
+	if(!fp)
+	{
+		fprintf(stderr, "[-] Can not open %s\n", path);
+		exit(-1);
+	}
+
+	fprintf(stderr, "[*] verifying Target Shared Object(%s) ... ", get_object_name(path));
+	Elf32_Ehdr *ehdr = get_elf_header(fp);
+	if((ehdr->e_ident[1]=='E')&&(ehdr->e_ident[2]=='L')&&(ehdr->e_ident[3]=='F'))
+	{
+		if(ehdr->e_type==ET_DYN)
+		{
+			fprintf(stderr, "ok\n");
+			free(ehdr);
+			fclose(fp);
+			return 1;
+		}
+	}
+	fprintf(stderr, "failed\n");
+	free(ehdr);
+	fclose(fp);
 	return 0;
 }
 
