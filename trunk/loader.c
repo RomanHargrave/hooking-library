@@ -54,11 +54,6 @@ int main(int argc, char **argv)
 		fprintf(stderr, "[-] You should use Absolute path for Shared Object\n");
 		exit(-1);
 	}
-	else if(access(argv[2], F_OK))
-	{
-		fprintf(stderr, "[-] %s is not found\n", argv[2]);
-		exit(-1);
-	}
 
 	fp = fopen(map[i]->mapname, "r");
 	if(fp==NULL)
@@ -99,11 +94,8 @@ int main(int argc, char **argv)
 
 	if(handle)
 		printf("[*] Shared object load sucessfully\n");
-	else{
-		printf("[-] Shared object load failed\n");
-		free_map(map);
-		exit(-1);
-	}
+	else
+		printf("[*] Shared object load failed\n");
 
 	// release memory
 	printf("[*] release temporary memory\n");
