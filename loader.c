@@ -55,6 +55,12 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
+	if(access(argv[2], F_OK))
+	{
+		fprintf(stderr, "[-] Can not open %s\n", argv[2]);
+		exit(-1);
+	}
+
 	fp = fopen(map[i]->mapname, "r");
 	if(fp==NULL)
 	{
@@ -94,8 +100,10 @@ int main(int argc, char **argv)
 
 	if(handle)
 		printf("[*] Shared object load sucessfully\n");
-	else
-		printf("[*] Shared object load failed\n");
+	else{
+		printf("[-] Shared object load failed\n");
+		exit(-1);
+	}
 
 	// release memory
 	printf("[*] release temporary memory\n");
