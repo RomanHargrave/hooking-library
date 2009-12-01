@@ -5,14 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-Elf32_Sym* get_dynsymbol_value(const char *path, char *);
+Elf32_Sym* get_dynsymbol_value(FILE *, char *);
+Elf32_Sym* get_symbol_value(FILE* , char *);
 Elf32_Shdr* get_section_byName(FILE *fp, int size, int ndx, char*);
 int shsstroff, section_base;
 
-/* -- Retrieve dlopen Symbol value -- */
-Elf32_Sym* get_dynsymbol_value(const char *path, char *name)
+/* -- Get Symbol Structure pointer -- */
+Elf32_Sym* get_dynsymbol_value(FILE *fp, char *name)
 {
-	FILE *fp = fopen(path, "r");
 	Elf32_Ehdr *ehdr = malloc(sizeof(Elf32_Ehdr));
 	Elf32_Shdr *shdr = NULL;
 	Elf32_Shdr *shstr = NULL;
@@ -20,13 +20,8 @@ Elf32_Sym* get_dynsymbol_value(const char *path, char *name)
 	int i, symtab_ndx;
 	char str[128];
 
-	if(fp==NULL)
-	{
-		fprintf(stderr, "Can not open [%s]\n", path);
-		exit(-1);
-	}
-
 	// read elf header to retrieve section information
+	fseek(fp, 0, SEEK_SET);
 	fread(ehdr, sizeof(Elf32_Ehdr), 1, fp);
 
 	// calculate symbol string table section offset
@@ -52,9 +47,49 @@ Elf32_Sym* get_dynsymbol_value(const char *path, char *name)
 				return sym;
 		}
 	}
-	return 0;
+	return NULL;
 }
 
+/* -- Get Symbol Structure pointer -- */
+Elf32_Sym* get_symbol_value(FILE *fp, char *name)
+{
+	Elf32_Ehdr *ehdr = malloc(sizeof(Elf32_Ehdr));
+	Elf32_Shdr *shdr = NULL;
+	Elf32_Shdr *shstr = NULL;
+	Elf32_Sym *sym = malloc(sizeof(Elf32_Sym));
+	int i, symtab_ndx;
+	char str[128];
+
+
+	// read elf header to retrieve section information
+	fseek(fp, 0, SEEK_SET);
+	fread(ehdr, sizeof(Elf32_Ehdr), 1, fp);
+
+	// calculate symbol string table section offset
+	section_base = ehdr->e_shoff;
+	shsstroff = ehdr->e_shoff + (ehdr->e_shentsize * ehdr->e_shstrndx);
+
+	shdr = get_section_byName(fp, ehdr->e_shentsize, ehdr->e_shnum, ".symtab");
+	shstr = get_section_byName(fp, ehdr->e_shentsize, ehdr->e_shnum, ".strtab");
+
+	if(shdr!=NULL){
+		symtab_ndx = shdr->sh_size / sizeof(Elf32_Sym);
+		fseek(fp, shdr->sh_offset, SEEK_SET);
+
+		for(i=0 ; i<symtab_ndx ; i++)
+		{
+			memset(str, 0, 128);
+			fseek(fp, shdr->sh_offset + i*sizeof(Elf32_Sym), SEEK_SET);
+			fread(sym, sizeof(Elf32_Sym), 1, fp);
+			fseek(fp, shstr->sh_offset + sym->st_name, SEEK_SET);
+			fgets(str, 128, fp);
+
+			if(strstr(str, name))
+				return sym;
+		}
+	}
+	return NULL;
+}
 /* -- Retrieve Section Pointer usign section name -- */
 Elf32_Shdr* get_section_byName(FILE *fp, int size, int ndx, char* name)
 {
