@@ -32,6 +32,8 @@ unsigned int execute_code(int pid, unsigned char code[], int);
 unsigned int execute_exit_code(int pid, unsigned char code[], int);
 int get_codelen(unsigned char code[]);
 PMAP_INFO* get_map_info(int pid);
+void free_map(PMAP_INFO*);
+
 /* -- ptrace help functions -- */
 void ptrace_detach(int pid);
 void ptrace_cont(int pid);
@@ -301,6 +303,13 @@ void ptrace_detach(int pid)
    perror("ptrace_detach");
    exit(-1);
   }
+}
+
+void free_map(PMAP_INFO *map)
+{
+	int i =0;
+	while(map[i]!=NULL)
+		free(map[i++]);
 }
 
 #endif

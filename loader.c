@@ -101,6 +101,7 @@ int main(int argc, char **argv)
 	printf("[*] release temporary memory\n");
 	remote_munmap(atoi(argv[1]), (void*)ptr, 8096);
 
+	free_map(map);
 	print_mapped_info(atoi(argv[1]), get_object_name(argv[2]));
 
 	fclose(fp);
@@ -115,7 +116,6 @@ void *print_mapped_info(int pid, char *object)
 	int i=0;
 	PMAP_INFO *map = NULL;
 	map = get_map_info(pid);	
-
 	printf("[*] Here is the New Shared object mapped info ==\n");
 
 	while(map[i]!=NULL){
@@ -124,8 +124,11 @@ void *print_mapped_info(int pid, char *object)
 					map[i]->begin, map[i]->end, map[i]->perm,
 					map[i]->mapname);
 		}
-		free(map[i++]);
+		i++;
 	}
+
+	free_map(map);
+
 }
 
 /* -- Get Shared Object file name -- */
