@@ -28,6 +28,7 @@ int main(int argc, char **argv)
 	long dlopen_addr, ptr;
 	char str[128];
 	void *handle = NULL;
+	FILE *fp;
 	Elf32_Sym* sym = NULL;
 	PMAP_INFO *map = NULL;
 	map = get_map_info(atoi(argv[1]));	
@@ -54,8 +55,15 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
+	fp = fopen(map[i]->mapname, "r");
+	if(fp==NULL)
+	{
+		fprintf(stderr, "[-] Cannot open %s\n", map[i]->mapname);
+		exit(-1);
+	}
+
 	// retrieve dlopen's symbol structure pointer 
-	sym = get_dynsymbol_value(map[i]->mapname, "dlopen");
+	sym = get_dynsymbol_value(fp, "dlopen");
 	// make virtual memory address
 	dlopen_addr = map[i]->begin + sym->st_value;
 	free(sym);
@@ -93,16 +101,9 @@ int main(int argc, char **argv)
 	printf("[*] release temporary memory\n");
 	remote_munmap(atoi(argv[1]), (void*)ptr, 8096);
 
-	while(map[i]!=NULL){
-		if(strstr(map[i]->mapname, "libdl") && strstr(map[i]->perm, "x")){
-			flag=1;
-			break;
-		}
-		i++;
-	}
-
 	print_mapped_info(atoi(argv[1]), get_object_name(argv[2]));
 
+	fclose(fp);
 	printf("[*] done\n");
 	get_object_name(argv[2]);
 	return 0;
