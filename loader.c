@@ -21,6 +21,7 @@ unsigned char dlopen_code[] =
 char *get_object_name(const char *);
 void *print_mapped_info(int pid, char* object);
 int verify_shared_object(const char*);
+void help(const char *);
 
 /* -- Entry point!! -- */
 int main(int argc, char **argv)
@@ -32,6 +33,10 @@ int main(int argc, char **argv)
 	FILE *fp;
 	Elf32_Sym* sym = NULL;
 	PMAP_INFO *map = NULL;
+
+	if(argc!=3)
+		help(argv[0]);
+
 	map = get_map_info(atoi(argv[1]));	
 
 	// Check libdl.so in target process
@@ -44,35 +49,37 @@ int main(int argc, char **argv)
 	}
 
 	// Error check
+	
+
 	if(flag==0)
 	{
 		fprintf(stderr, "[-] Target process has no libdl ;(\n");
-		exit(-1);
+		help(argv[0]);
 	}
 
 	if(argv[2][0]!='/')
 	{
 		fprintf(stderr, "[-] You should use Absolute path for Shared Object\n");
-		exit(-1);
+		help(argv[0]);
 	}
 
 	if(access(argv[2], F_OK))
 	{
 		fprintf(stderr, "[-] Can not open %s\n", argv[2]);
-		exit(-1);
+		help(argv[0]);
 	}
 
 	fp = fopen(map[i]->mapname, "r");
 	if(fp==NULL)
 	{
 		fprintf(stderr, "[-] Cannot open %s\n", map[i]->mapname);
-		exit(-1);
+		help(argv[0]);
 	}
 
 	if(!verify_shared_object(argv[2]))
 	{
 		fclose(fp);
-		exit(-1);
+		help(argv[0]);
 	}
 
 	// retrieve dlopen's symbol structure pointer 
@@ -184,4 +191,11 @@ char *get_object_name(const char *path)
 	ptr = (char*)path+len+1;
 
 	return ptr;
+}
+
+void help(const char *name)
+{
+	fprintf(stderr, "[*] USAGE : %s [Target Process ID] [Absolute Path for Shared Object]\n",
+			name);
+	exit(0);
 }
