@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 	}
 
 	// retrieve dlopen's symbol structure pointer 
-	sym = get_dynsymbol_value(fp, "dlopen");
+	sym = get_dynsymbol(fp, "dlopen");
 	// make virtual memory address
 	dlopen_addr = map[i]->begin + sym->st_value;
 	free(sym);
@@ -109,16 +109,16 @@ int main(int argc, char **argv)
 	printf("[*] Executing dlopen()\n");
 	handle = (void*)execute_code(atoi(argv[1]), dlopen_code, len);
 
+	// release memory
+	printf("[*] release temporary memory\n");
+	remote_munmap(atoi(argv[1]), (void*)ptr, 8096);
+
 	if(handle)
 		printf("[*] Injecting sucessfully\n");
 	else{
 		printf("[-] Injecting failed\n");
 		exit(-1);
 	}
-
-	// release memory
-	printf("[*] release temporary memory\n");
-	remote_munmap(atoi(argv[1]), (void*)ptr, 8096);
 
 	free_map(map);
 	print_mapped_info(atoi(argv[1]), get_object_name(argv[2]));

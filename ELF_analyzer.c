@@ -6,8 +6,8 @@
 #include <stdlib.h>
 
 /* -- proto types -- */
-Elf32_Sym* get_dynsymbol_value(FILE *, char *);
-Elf32_Sym* get_symbol_value(FILE* , char *);
+Elf32_Sym* get_dynsymbol(FILE *, char *);
+Elf32_Sym* get_symbol(FILE* , char *);
 Elf32_Shdr* get_section_byName(FILE *fp, char*);
 Elf32_Ehdr* get_elf_header(FILE *fp);
 
@@ -22,7 +22,7 @@ Elf32_Ehdr* get_elf_header(FILE* fp)
 }
 
 /* -- Get Symbol Structure pointer -- */
-Elf32_Sym* get_dynsymbol_value(FILE *fp, char *name)
+Elf32_Sym* get_dynsymbol(FILE *fp, char *name)
 {
 	Elf32_Ehdr *ehdr = NULL;
 	Elf32_Shdr *shdr = NULL;
@@ -59,7 +59,7 @@ Elf32_Sym* get_dynsymbol_value(FILE *fp, char *name)
 }
 
 /* -- Get Symbol Structure pointer -- */
-Elf32_Sym* get_symbol_value(FILE *fp, char *name)
+Elf32_Sym* get_symbol(FILE *fp, char *name)
 {
 	Elf32_Ehdr *ehdr = NULL;
 	Elf32_Shdr *shdr = NULL;
