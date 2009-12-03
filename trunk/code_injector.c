@@ -1,4 +1,8 @@
-/* -- ELF Code Injector by binoopang [binoopang@gmail.com]----------------------- */
+/* -- ELF Code Injector by binoopang [binoopang@gmail.com]----------------------- *
+ * This file contains the core routines. Every function and utility construct based this file.
+ * Code Injection routine is using ptrace system call to control target process.
+ * You can see ptrace help functions at bottom of this file. I brought this function
+ * from phrack magazine. maybe #59                                            --- */
 
 #ifndef CODE_INJECTOR_C
 #define CODE_INJECTOR_C 1
@@ -234,6 +238,8 @@ int get_codelen(unsigned char code[])
 
 	return i+1;
 }
+
+/* ------- PTRACE HELP FUNCTIONS ------------------------------ */
 
 void * read_data(int pid, unsigned long addr, void *vptr, int len)
 {
