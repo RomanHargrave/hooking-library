@@ -48,32 +48,32 @@ int main(int argc, char **argv)
 		i++;
 	}
 
-	// Error check
+	// libdl check
 	if(flag==0)
 	{
 		fprintf(stderr, "[-] Target process has no libdl ;(\n");
 		help_terminate(argv[0]);
 	}
-
+	// absolute path check
 	if(argv[2][0]!='/')
 	{
 		fprintf(stderr, "[-] You should use Absolute path for Shared Object\n");
 		help_terminate(argv[0]);
 	}
-
+	// exist?
 	if(access(argv[2], F_OK))
 	{
 		fprintf(stderr, "[-] Can not open %s\n", argv[2]);
 		help_terminate(argv[0]);
 	}
-
+	// open libdl
 	fp = fopen(map[i]->mapname, "r");
 	if(fp==NULL)
 	{
 		fprintf(stderr, "[-] Cannot open %s\n", map[i]->mapname);
 		help_terminate(argv[0]);
 	}
-
+	// verifying SO
 	if(!verify_shared_object(argv[2]))
 	{
 		fclose(fp);
